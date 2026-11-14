@@ -27,11 +27,18 @@ from dotenv import load_dotenv  # type: ignore
 dot_file = os.path.join(os.path.dirname(__file__), "../.env")
 load_dotenv(dot_file)
 
-openai_api_key = os.environ.get("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY must be set.")
+openai_client = None
 
-openai_client = OpenAI(api_key=openai_api_key)
+
+def get_openai_client():
+    """An OpenAI key is needed only when an OpenAI model is called."""
+    global openai_client
+    if openai_client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("Set OPENAI_API_KEY in .env to use an OpenAI model.")
+        openai_client = OpenAI(api_key=api_key)
+    return openai_client
 
 
 def parse_openai_json_results(response: str):
@@ -107,6 +114,7 @@ def call_openai_models_with_content(
     raw_response = None
     parsed_response = None
 
+    get_openai_client()
     for attempt in range(max_retries):
         try:
             messages = []
@@ -116,7 +124,7 @@ def call_openai_models_with_content(
 
             messages.append({"role": "user", "content": content})
 
-            response = openai_client.chat.completions.create(
+            response = get_openai_client().chat.completions.create(
                 model=model_name,
                 messages=messages,
                 **generation_configs,

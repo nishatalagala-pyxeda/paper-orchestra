@@ -31,15 +31,15 @@ import datetime
 import io
 import zipfile
 from streamlit.runtime.scriptrunner import add_script_run_ctx
-import signal
-import ctypes
-from frontend_utils import send_notification_email
 
 load_dotenv()
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from methods.paper_writer import write_single_paper
+from frontend.frontend_utils import send_notification_email
+from utils.runtime_config import setup_local_tools, generation_errors
+
+setup_local_tools()
 from utils.pdf_utils import pdf_to_grid_images
 
 st.set_page_config(
@@ -142,6 +142,9 @@ def render_sidebar():
         except Exception as exception_object:
             st.sidebar.error(f"Error loading example: {exception_object}")
 
+    for problem in generation_errors():
+        st.sidebar.warning(problem)
+
     models = ["gemini-3.1-pro-preview", "gemini-3-flash-preview"]
     selected_model = st.sidebar.selectbox(
         "Select Model", models, disabled=st.session_state.locked
@@ -161,7 +164,7 @@ def render_sidebar():
     )
 
     st.sidebar.markdown(
-        "Your Email (for notification) <span style='color:red'>*</span>",
+        "Your Email (optional notification)",
         unsafe_allow_html=True,
     )
     email_input = st.sidebar.text_input(
@@ -308,10 +311,9 @@ def handle_live_execution(
             if (
                 not st.session_state.get("saved_idea")
                 or not st.session_state.get("saved_log")
-                or not st.session_state.get("email_input")
             ):
                 st.session_state.error_message = (
-                    "❌ Please fill in all required fields (Idea, Log, and Email)."
+                    "❌ Please fill in the research idea and experimental log."
                 )
                 st.session_state.running = False
                 st.session_state.locked = False
@@ -322,10 +324,9 @@ def handle_live_execution(
             st.session_state.thread_started = True
 
             base_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            parent_directory = os.path.dirname(base_directory)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             run_directory = os.path.join(
-                parent_directory, "demo_logs", f"paper_orchestra_run_{timestamp}"
+                base_directory, "demo_logs", f"paper_orchestra_run_{timestamp}"
             )
             st.session_state.run_directory = run_directory
             raw_materials_directory = os.path.join(run_directory, "raw_materials")
@@ -376,12 +377,6 @@ def handle_live_execution(
                 figures_list,
             ):
                 try:
-                    libc = ctypes.CDLL(None)
-                    process_set_parent_death_signal = 1
-
-                    def set_death_signal():
-                        libc.prctl(process_set_parent_death_signal, signal.SIGKILL)
-
                     os.makedirs(run_directory, exist_ok=True)
                     raw_materials_directory = os.path.join(
                         run_directory, "raw_materials"
@@ -416,7 +411,6 @@ def handle_live_execution(
                         stderr=subprocess.STDOUT,
                         text=True,
                         cwd=working_directory,
-                        preexec_fn=set_death_signal,
                     )
 
                     current_step_name = steps_list[0]
@@ -454,6 +448,10 @@ def handle_live_execution(
 
                                 st.session_state.logs[current_step_name] += line
 
+                    if process.poll() != 0:
+                        st.session_state.logs["Content Refinement"] += (
+                            f"\nPipeline exited with status {process.returncode}."
+                        )
                     if process.poll() == 0:
                         st.session_state.current_step = len(steps_list)
                         if recipient_email:
@@ -705,6 +703,13 @@ if not st.session_state.get("hide_inputs"):
         if st.button(
             "🚀 Begin Writing", type="primary", disabled=st.session_state.locked
         ):
+            problems = generation_errors()
+            if not st.session_state.get("idea_text_main") or not st.session_state.get("log_text_main"):
+                problems.append("Please fill in the research idea and experimental log.")
+            if problems:
+                for problem in problems:
+                    st.error(problem)
+                st.stop()
             st.session_state.saved_idea = st.session_state.get("idea_text_main")
             st.session_state.saved_log = st.session_state.get("log_text_main")
             st.session_state.locked = True

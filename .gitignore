@@ -5,3 +5,10 @@
 datasets/*
 paper_output*
 *.zip
+.venv/
+.tools/
+.cache/
+__pycache__/
+.env.*
+!.env.example
+demo_logs/

@@ -18,6 +18,50 @@ Acting like an orchestrated team of specialized agents, it handles outline gener
 - **Visuals Generation**: Generates plots and supports the inclusion of conceptual diagrams.
 - **LaTeX Automation**: Produces submission-ready LaTeX manuscripts adhering to target conference templates.
 
+## Local setup in this fork
+
+Python 3.11 or newer is required; Python 3.12 was verified on Apple Silicon.
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements-lock.txt
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY, or configure Vertex AI and ADC.
+./scripts/install-tex-macos.sh  # macOS; alternatively install a TeX distribution
+.venv/bin/python paper_writing_cli.py --check
+./scripts/run-local.sh
+```
+
+Open <http://127.0.0.1:8501>. Use **Load CVPR Example** to populate the
+research idea, experiment log and supplied figure. Select **No** for figure
+generation to use that figure, then choose **Begin Writing**. Email is optional.
+Restart the server after changing `.env`. Runs are saved under `demo_logs/`.
+
+The UI opens without credentials. Actual generation requires Gemini access:
+outline, literature search and refinement call Gemini directly, even when other
+stages use OpenAI. An OpenAI key is optional. `--check` checks configuration
+presence and executables; it does not validate credentials or model access.
+The upstream model defaults are retained and may require access on your account.
+The optional PaperBanana reference data is not bundled; figure generation falls
+back to running without those examples.
+
+The lock file records the tested Python dependencies. For other platforms, install
+`requirements.txt` if a platform-specific locked dependency is unavailable.
+On Linux, install TeX Live providing `pdflatex`, `bibtex`, and the packages used
+by the CVPR/ICLR templates. Portable TeX binaries under `.tools/TinyTeX/bin/`
+and standard macOS TeX binaries are discovered automatically.
+
+Validation (no paid model calls):
+
+```bash
+.venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python scripts/check-templates.py
+```
+
+This fork fixes import-time credential failures, macOS subprocess startup, CLI
+failure exit codes, and required email entry. Credentials and local environments
+are ignored by Git. The local launcher binds only to `127.0.0.1`.
+
 ## Installation
 
 1.  **Environment Setup**: The project relies on a Conda environment named `paper_orchestra`. You can set up a similar environment with Python 3.11 and install the required dependencies.

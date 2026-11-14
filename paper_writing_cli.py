@@ -20,13 +20,16 @@ from datetime import datetime
 
 
 def main():
+    from utils.runtime_config import setup_local_tools, generation_errors
+
+    setup_local_tools()
     parser = argparse.ArgumentParser(
         description="CLI for generating a single paper from the Paper Orchestra pipeline."
     )
 
     parser.add_argument(
         "--raw_materials_dir",
-        required=True,
+        required=False,
         help="Directory containing the raw materials (e.g. idea and experimental log).",
     )
     parser.add_argument(
@@ -36,7 +39,7 @@ def main():
     )
     parser.add_argument(
         "--latex_template_dir",
-        required=True,
+        required=False,
         help="Directory containing the LaTeX template (e.g. cvpr2025/iclr2025).",
     )
     parser.add_argument(
@@ -87,7 +90,25 @@ def main():
         help="Maximum rounds of self-correction in the plotting agent.",
     )
 
+    parser.add_argument("--check", action="store_true", help="Check local tools and credentials without API calls.")
     args = parser.parse_args()
+    problems = generation_errors()
+    if args.check:
+        if problems:
+            print("\n".join(problems))
+            return 1
+        print("Ready: Gemini configuration and LaTeX tools are available (credentials not verified).")
+        return 0
+    if not args.raw_materials_dir or not args.latex_template_dir:
+        parser.error("--raw_materials_dir and --latex_template_dir are required for generation")
+    for filename in (args.idea_filename, args.experimental_log_filename):
+        if not os.path.isfile(os.path.join(args.raw_materials_dir, filename)):
+            problems.append(f"Missing input file: {filename}")
+    for filename in ("template.tex", "guidelines.md"):
+        if not os.path.isfile(os.path.join(args.latex_template_dir, filename)):
+            problems.append(f"Missing template file: {filename}")
+    if problems:
+        parser.error("\n".join(problems))
 
     if args.research_cutoff is None:
         args.research_cutoff = datetime.now().strftime("%Y-%m")
@@ -142,7 +163,7 @@ def main():
         from methods.paper_writer_with_plotting import write_single_paper
 
         print(f"🚀 Starting Paper Generation (WITH PLOTTING) in {base_dir}")
-        write_single_paper(
+        success = write_single_paper(
             base_dir=base_dir,
             latex_template_dir=args.latex_template_dir,
             idea_filename=args.idea_filename,
@@ -161,7 +182,7 @@ def main():
         print(
             f"🚀 Starting Paper Generation (WITHOUT PLOTTING), with figures stored in {provided_figures_dir}"
         )
-        write_single_paper(
+        success = write_single_paper(
             base_dir=base_dir,
             latex_template_dir=args.latex_template_dir,
             idea_filename=args.idea_filename,
@@ -171,6 +192,8 @@ def main():
             research_cutoff=args.research_cutoff,
         )
 
+    return 0 if success else 1
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

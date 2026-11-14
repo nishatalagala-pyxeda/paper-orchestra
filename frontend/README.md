@@ -1,40 +1,20 @@
 # Paper Orchestra Frontend
 
-This directory contains the Streamlit frontend for Paper Orchestra.
-
-## How to Launch the Demo Locally
-
-1. Ensure you have activated your environment and installed dependencies.
-2. Navigate to the project root directory:
-   ```bash
-   cd paper-orchestra
-   conda activate paper_orchestra
-   ```
-3. Run the Streamlit application:
-   ```bash
-   streamlit run frontend/app.py
-   ```
-4. Open the URL provided in the terminal (usually `http://localhost:8501` or similar) in your browser.
-
-## How to Kill Unfinished Writing Processes
-
-The frontend launches a background process (`paper_writing_cli.py`) to handle the paper generation. 
-
-### Automatic Cleanup
-On Linux, the application is configured to automatically kill the background process if the Streamlit server process is stopped. Simply pressing **Ctrl+C** in the terminal where you ran `streamlit run` should clean up the running pipeline.
-
-### Manual Cleanup
-If you disconnect from the frontend or the server stops unexpectedly without cleaning up, you may have orphan processes running in the background. You can kill them manually using:
+From the repository root, after following the local setup in the main README:
 
 ```bash
-pkill -f paper_writing_cli.py
+./scripts/run-local.sh
 ```
 
-Or to find the process ID (PID) first:
-```bash
-pgrep -f paper_writing_cli.py
-```
-And then kill it:
-```bash
-kill <PID>
-```
+Open <http://127.0.0.1:8501>. The UI opens before keys are configured, and reports
+missing generation prerequisites in the sidebar. Restart after changing `.env`.
+Email notifications are optional and require SMTP configuration.
+
+Use **Load CVPR Example** to populate the input materials. Choose **No** for
+figure generation to use its supplied figure. Generated files and logs are saved
+under `demo_logs/` inside the repository.
+
+The frontend launches `paper_writing_cli.py` as a background process. Keep the
+server running until it finishes. Stopping the server can leave a pipeline running;
+use `pgrep -fl paper_writing_cli.py` to identify it and `kill <PID>` to stop that
+specific process.

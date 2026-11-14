@@ -28,24 +28,25 @@ import dotenv
 dot_file = os.path.join(os.path.dirname(__file__), "../.env")
 dotenv.load_dotenv(dot_file)
 
-vertex_ai_project = os.getenv("VERTEX_AI_PROJECT")
-vertex_ai_location = os.getenv("VERTEX_AI_LOCATION")
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+genai_client = None
 
-if vertex_ai_project and vertex_ai_location:
-    print(
-        f"Using Vertex AI configuration. Project: {vertex_ai_project}, Location: {vertex_ai_location}"
-    )
-    genai_client = genai.Client(
-        vertexai=True, project=vertex_ai_project, location=vertex_ai_location
-    )
-elif gemini_api_key:
-    print("Using Gemini API Key configuration.")
-    genai_client = genai.Client(api_key=gemini_api_key)
-else:
-    raise ValueError(
-        "Either VERTEX_AI_PROJECT/VERTEX_AI_LOCATION or GEMINI_API_KEY must be set."
-    )
+
+def get_genai_client():
+    """Initialize only when Gemini is used, so the UI can load without keys."""
+    global genai_client
+    if genai_client is None:
+        project = os.getenv("VERTEX_AI_PROJECT")
+        location = os.getenv("VERTEX_AI_LOCATION")
+        api_key = os.getenv("GEMINI_API_KEY")
+        if project and location:
+            genai_client = genai.Client(vertexai=True, project=project, location=location)
+        elif api_key:
+            genai_client = genai.Client(api_key=api_key)
+        else:
+            raise ValueError(
+                "Set GEMINI_API_KEY or VERTEX_AI_PROJECT/VERTEX_AI_LOCATION in .env."
+            )
+    return genai_client
 
 
 def parse_gemini_json_results(response: str):
@@ -151,9 +152,10 @@ def call_gemini_with_contents(
     raw_response = None
     parsed_response = None
 
+    get_genai_client()
     for attempt in range(max_retries):
         try:
-            response = genai_client.models.generate_content(
+            response = get_genai_client().models.generate_content(
                 model=model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(**generation_configs),
@@ -271,6 +273,7 @@ def generate_image_with_gemini(
     if generation_configs is None:
         generation_configs = {}
 
+    get_genai_client()
     for attempt in range(max_retries):
         try:
             config_args = {
@@ -283,7 +286,7 @@ def generate_image_with_gemini(
             }
             config_args.update(generation_configs)
 
-            response = genai_client.models.generate_content(
+            response = get_genai_client().models.generate_content(
                 model=model_name,
                 contents=[types.Part.from_text(text=prompt)],
                 config=types.GenerateContentConfig(**config_args),
