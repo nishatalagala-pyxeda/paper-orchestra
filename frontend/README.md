@@ -8,6 +8,8 @@ From the repository root, after following the local setup in the main README:
 
 Open <http://127.0.0.1:8501>. The UI opens before keys are configured, and reports
 missing generation prerequisites in the sidebar. Restart after changing `.env`.
+The default OpenAI pipeline requires `OPENAI_API_KEY`, with no Gemini key.
+Figure generation uses OpenAI-produced matplotlib code for both plots and diagrams.
 Email notifications are optional and require SMTP configuration.
 
 Use **Load CVPR Example** to populate the input materials. Choose **No** for

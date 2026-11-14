@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from utils.model_config import DEFAULT_MODEL
+
 import os
 import os.path as osp
 import shutil
@@ -38,9 +40,9 @@ def write_single_paper(
     latex_template_dir,
     idea_filename="idea_dense.md",
     experimental_log_filename="experimental_log.md",
-    writer_model_name: str = "gemini-3.1-pro-preview",
-    reflection_model_name: str = "gemini-3.1-pro-preview",
-    plotting_model_name: str = "gemini-3.1-pro-preview",
+    writer_model_name: str = DEFAULT_MODEL,
+    reflection_model_name: str = DEFAULT_MODEL,
+    plotting_model_name: str = DEFAULT_MODEL,
     image_model_name: str = "gemini-3-pro-image-preview",
     research_cutoff: str = "2024-11",
     plotting_max_critic_rounds: int = 3,
@@ -437,8 +439,8 @@ def run_batch_writeup(
     date_str: str = "",
     idea_filename: str = "idea_sparse.md",
     experimental_log_filename: str = "experimental_log.md",
-    writer_model_name: str = "gemini-3.1-pro-preview",
-    plotting_model_name: str = "gemini-3.1-pro-preview",
+    writer_model_name: str = DEFAULT_MODEL,
+    plotting_model_name: str = DEFAULT_MODEL,
     image_model_name: str = "gemini-3-pro-image-preview",
     plotting_max_critic_rounds: int = 3,
     research_cutoff: str = "2024-11",

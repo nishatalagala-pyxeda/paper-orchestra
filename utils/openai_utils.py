@@ -198,3 +198,30 @@ def get_openai_image_part_from_path(image_path: str):
         }
     ]
     return image_content
+
+
+def call_openai_responses(content, model_name, instructions=None, tools=None,
+                          generation_configs=None, result_parsing_func=parse_openai_json_results,
+                          check_parsed_response_not_none=True, max_retries=3):
+    """Responses supports grounded search and native PDF/image input in every stage."""
+    client = get_openai_client()
+    kwargs = dict(generation_configs or {})
+    kwargs.update(model=model_name, input=[{"role": "user", "content": content}], store=False)
+    if instructions:
+        kwargs["instructions"] = instructions
+    if tools:
+        kwargs["tools"] = tools
+        # Discovery must actually search, rather than recall citations from memory.
+        kwargs["tool_choice"] = "required"
+    for attempt in range(max_retries):
+        response = client.responses.create(**kwargs)
+        if response.status != "completed":
+            raise RuntimeError(f"OpenAI response did not complete: {response.status}")
+        raw = response.output_text
+        if not raw:
+            raise ValueError("OpenAI returned no text (possibly a refusal)")
+        parsed = result_parsing_func(raw)
+        if not check_parsed_response_not_none or parsed is not None:
+            return {"raw_response": raw, "parsed_response": parsed}
+        if attempt + 1 == max_retries:
+            raise ValueError("OpenAI output could not be parsed after repeated attempts")

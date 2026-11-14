@@ -29,6 +29,8 @@ Output:
 - completed_paper.tex: The completed LaTeX file with all sections filled in.
 """
 
+
+from utils.model_config import DEFAULT_MODEL
 import json
 from typing import List, Dict
 
@@ -50,7 +52,7 @@ class SectionWritingAgent:
         citation_map_path: str,
         figures_info_path: str,
         guidelines_path: str,
-        model_name: str = "gemini-3.1-pro-preview",
+        model_name: str = DEFAULT_MODEL,
     ):
 
         self.model_name = model_name

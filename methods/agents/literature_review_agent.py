@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from utils.model_config import DEFAULT_MODEL
+
 import json
+from utils.llm_backend_utils import call_llm_with_contents
+from utils.model_config import is_openai_model
+
 import os
 import re
 import datetime
@@ -25,7 +30,7 @@ from google.genai import types  # type: ignore
 from methods.prompts.literature_review_agent import (
     literature_review_agent_writter_prompt,
 )
-from utils.gemini_utils import call_gemini_with_contents, parse_gemini_latex_results
+from utils.gemini_utils import parse_gemini_latex_results
 from utils.scholar_utils import s2_title_search
 
 
@@ -69,7 +74,7 @@ class HybridLiteratureAgent:
         latex_template_path: str,
         conference_guidelines_path: str,
         output_dir: str,
-        model_name: str = "gemini-3.1-pro-preview",
+        model_name: str = DEFAULT_MODEL,
         max_workers: int = 5,
     ):
         self.output_dir = output_dir
@@ -437,7 +442,7 @@ class HybridLiteratureAgent:
             CUTOFF DATE: Published BEFORE {cutoff_date}
             
             INSTRUCTIONS:
-            1. Use Google Search to find the EXACT title and year of this paper.
+            1. Use web search to find the EXACT title and year of this paper.
             2. If the hint refers to a dataset, model architecture, or baseline (e.g., "research paper introducing..."), you MUST find the primary, original paper that introduced it.
             3. Return EXACTLY 1 candidate paper that matches best.
 
@@ -454,15 +459,15 @@ class HybridLiteratureAgent:
             CUTOFF DATE: Published BEFORE {cutoff_date}
             
             INSTRUCTIONS:
-            1. Use Google Search to find REAL papers (ArXiv, CVPR, NeurIPS, ICML, ICLR, etc.).
+            1. Use web search to find REAL papers (ArXiv, CVPR, NeurIPS, ICML, ICLR, etc.).
             2. Only return papers published in top-tier conferences or journals, or highly-cited works, or the exact state-of-the-art relevant to the task.
 
             YOU MUST return the results in json format (```json content```) following this schema:
             {DiscoveryResult.model_json_schema()}
             """
 
-        response_dict = call_gemini_with_contents(
-            model_name="gemini-3-flash-preview",
+        response_dict = call_llm_with_contents(
+            model_name=self.model_name if is_openai_model(self.model_name) else "gemini-3-flash-preview",
             contents=[prompt],
             generation_configs={
                 "tools": [self.google_search_tool],
@@ -496,7 +501,7 @@ class HybridLiteratureAgent:
         )
 
         user_prompt = "Generate the LaTeX for Introduction and Related Work sections."
-        response_dict = call_gemini_with_contents(
+        response_dict = call_llm_with_contents(
             model_name=self.model_name,
             contents=[user_prompt, json.dumps(context_payload)],
             generation_configs={"system_instruction": writer_system_prompt},

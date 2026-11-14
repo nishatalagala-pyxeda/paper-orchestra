@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from utils.model_config import DEFAULT_MODEL
+
 import argparse
 import sys
 import os
@@ -54,12 +56,12 @@ def main():
     )
     parser.add_argument(
         "--writer_model_name",
-        default="gemini-3.1-pro-preview",
+        default=DEFAULT_MODEL,
         help="LLM for writer and literature agents.",
     )
     parser.add_argument(
         "--reflection_model_name",
-        default="gemini-3.1-pro-preview",
+        default=DEFAULT_MODEL,
         help="LLM for reflection agents.",
     )
     parser.add_argument(
@@ -75,13 +77,13 @@ def main():
     )
     parser.add_argument(
         "--plotting_model_name",
-        default="gemini-3.1-pro-preview",
+        default=DEFAULT_MODEL,
         help="LLM for the plotting agent.",
     )
     parser.add_argument(
         "--image_model_name",
         default="gemini-3-pro-image-preview",
-        help="Vision model if required by plotting agent.",
+        help="Image model for Gemini diagram generation; unused by OpenAI matplotlib rendering.",
     )
     parser.add_argument(
         "--plotting_max_critic_rounds",
@@ -92,12 +94,19 @@ def main():
 
     parser.add_argument("--check", action="store_true", help="Check local tools and credentials without API calls.")
     args = parser.parse_args()
-    problems = generation_errors()
+    active_models = [args.writer_model_name, args.reflection_model_name]
+    if args.use_plotting:
+        active_models.append(args.plotting_model_name)
+        # OpenAI diagrams are drawn with matplotlib, without a separate image model.
+        from utils.model_config import is_openai_model
+        if not is_openai_model(args.plotting_model_name):
+            active_models.append(args.image_model_name)
+    problems = generation_errors(active_models)
     if args.check:
         if problems:
             print("\n".join(problems))
             return 1
-        print("Ready: Gemini configuration and LaTeX tools are available (credentials not verified).")
+        print("Ready: selected provider configuration and LaTeX tools are available (credentials not verified).")
         return 0
     if not args.raw_materials_dir or not args.latex_template_dir:
         parser.error("--raw_materials_dir and --latex_template_dir are required for generation")

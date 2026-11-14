@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from utils.model_config import DEFAULT_MODEL
+
 import base64
+from utils.llm_backend_utils import call_llm_with_contents, call_llm_with_text_prompt
+from utils.model_config import is_openai_model
+
 import io
 import re
 import os
@@ -23,8 +28,6 @@ from typing import Dict, Any, List, Tuple
 from google.genai import types
 
 from utils.gemini_utils import (
-    call_gemini_with_text_prompt,
-    call_gemini_with_contents,
     generate_image_with_gemini,
 )
 
@@ -335,7 +338,7 @@ def retrieve_few_shot_examples(
     task_name: str,
     raw_content: str,
     description: str,
-    model_name: str = "gemini-3.1-pro-preview",
+    model_name: str = DEFAULT_MODEL,
 ) -> List[Dict]:
     """
     Retrieves Top-10 relevant examples from PaperBanana reference dataset.
@@ -375,7 +378,7 @@ def retrieve_few_shot_examples(
 
     user_prompt += "Now, based on the Target Input and the Candidate Pool, select the Top 10 most relevant examples."
 
-    response_dict = call_gemini_with_contents(
+    response_dict = call_llm_with_contents(
         contents=[
             types.Part.from_text(text=system_prompt),
             types.Part.from_text(text=user_prompt),
@@ -403,7 +406,7 @@ def generate_figure_caption(
     description: str,
     figure_desc: str,
     base64_image: str = None,
-    model_name: str = "gemini-3.1-pro-preview",
+    model_name: str = DEFAULT_MODEL,
 ) -> str:
     """
     Generates a caption for the figure based on its final description and context.
@@ -439,7 +442,7 @@ def generate_figure_caption(
                 data=base64.b64decode(base64_image), mime_type="image/jpeg"
             ),
         ]
-        response_dict = call_gemini_with_contents(
+        response_dict = call_llm_with_contents(
             contents=contents,
             model_name=model_name,
             result_parsing_func=identity_parse,
@@ -447,7 +450,7 @@ def generate_figure_caption(
             check_parsed_response_not_none=True,
         )
     else:
-        response_dict = call_gemini_with_text_prompt(
+        response_dict = call_llm_with_text_prompt(
             prompt=prompt,
             model_name=model_name,
             result_parsing_func=identity_parse,
@@ -469,7 +472,7 @@ def predict_figure_content(
     raw_content: str,
     description: str,
     examples: List[Dict],
-    model_name: str = "gemini-3.1-pro-preview",
+    model_name: str = DEFAULT_MODEL,
 ) -> str:
     """
     Predicts the detailed figure description using LLM and few-shot examples.
@@ -523,7 +526,7 @@ def predict_figure_content(
 
     contents.append(types.Part.from_text(text=user_prompt))
 
-    response_dict = call_gemini_with_contents(
+    response_dict = call_llm_with_contents(
         contents=contents,
         model_name=model_name,
         result_parsing_func=identity_parse,
@@ -536,7 +539,7 @@ def style_figure_content(
     raw_content: str,
     description: str,
     figure_desc: str,
-    model_name: str = "gemini-3.1-pro-preview",
+    model_name: str = DEFAULT_MODEL,
 ) -> str:
     """
     Refines the basic figure description into a professionally styled description.
@@ -562,7 +565,7 @@ def style_figure_content(
     user_prompt += f"{context_labels[0]}: {raw_content}\n"
     user_prompt += f"{context_labels[1]}: {description}\nYour Output:"
 
-    response_dict = call_gemini_with_contents(
+    response_dict = call_llm_with_contents(
         contents=[
             types.Part.from_text(text=system_prompt),
             types.Part.from_text(text=user_prompt),
@@ -580,7 +583,7 @@ def critique_and_revise_figure(
     figure_desc: str,
     base64_image: str,
     round_idx: int,
-    model_name: str = "gemini-3.1-pro-preview",
+    model_name: str = DEFAULT_MODEL,
 ) -> Tuple[str, str]:
     """
     Critiques the generated figure and provides revised descriptions.
@@ -615,7 +618,7 @@ def critique_and_revise_figure(
     user_prompt = f"\nDetailed Description: {figure_desc}\n{context_labels[0]}: {raw_content}\n{context_labels[1]}: {description}\nYour Output:"
     contents.append(types.Part.from_text(text=user_prompt))
 
-    response_dict = call_gemini_with_contents(
+    response_dict = call_llm_with_contents(
         contents=contents,
         model_name=model_name,
         result_parsing_func=identity_parse,
@@ -646,20 +649,27 @@ def critique_and_revise_figure(
 def generate_figure_visuals(
     task_name: str,
     figure_description: str,
-    model_name: str = "gemini-3.1-pro-preview",
+    model_name: str = DEFAULT_MODEL,
     image_model_name: str = "gemini-3-pro-image-preview",
     aspect_ratio: str = "16:9",
 ) -> str:
     """
     Generates the figure based on the task type.
     """
-    if task_name == "plot":
-        prompt_text = f"Use python matplotlib to generate a statistical plot based on the following detailed description: {figure_description}\n Only provide the code without any explanations. Code:"
+    if task_name == "plot" or is_openai_model(model_name):
+        prompt_text = f"Use python matplotlib to generate a publication-quality {task_name} based on the following detailed description: {figure_description}\n Leave the completed matplotlib figure open for capture; do not call plt.close(). Only provide Python code without explanations. Code:"
+        system_prompt = PLOT_VISUALIZER_AGENT_SYSTEM_PROMPT
+        if task_name == "diagram":
+            system_prompt = (
+                "Create a publication-quality scientific method diagram as Python matplotlib code. "
+                "Use patches, arrows and clear labels; do not invent experimental results. "
+                f"Use an aspect ratio of {aspect_ratio}. Return only a Python code block."
+            )
         contents = [
-            types.Part.from_text(text=PLOT_VISUALIZER_AGENT_SYSTEM_PROMPT),
+            types.Part.from_text(text=system_prompt),
             types.Part.from_text(text=prompt_text),
         ]
-        response_dict = call_gemini_with_contents(
+        response_dict = call_llm_with_contents(
             contents=contents,
             model_name=model_name,
             result_parsing_func=identity_parse,

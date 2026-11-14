@@ -38,6 +38,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from frontend.frontend_utils import send_notification_email
 from utils.runtime_config import setup_local_tools, generation_errors
+from utils.model_config import DEFAULT_MODEL
 
 setup_local_tools()
 from utils.pdf_utils import pdf_to_grid_images
@@ -142,13 +143,13 @@ def render_sidebar():
         except Exception as exception_object:
             st.sidebar.error(f"Error loading example: {exception_object}")
 
-    for problem in generation_errors():
-        st.sidebar.warning(problem)
-
-    models = ["gemini-3.1-pro-preview", "gemini-3-flash-preview"]
+    models = list(dict.fromkeys([DEFAULT_MODEL, "gpt-6-astra", "gemini-3.1-pro-preview", "gemini-3-flash-preview"]))
     selected_model = st.sidebar.selectbox(
         "Select Model", models, disabled=st.session_state.locked
     )
+
+    for problem in generation_errors([selected_model]):
+        st.sidebar.warning(problem)
 
     templates = ["cvpr2025", "iclr2025"]
     selected_template = st.sidebar.selectbox(
@@ -703,7 +704,7 @@ if not st.session_state.get("hide_inputs"):
         if st.button(
             "🚀 Begin Writing", type="primary", disabled=st.session_state.locked
         ):
-            problems = generation_errors()
+            problems = generation_errors([selected_model])
             if not st.session_state.get("idea_text_main") or not st.session_state.get("log_text_main"):
                 problems.append("Please fill in the research idea and experimental log.")
             if problems:

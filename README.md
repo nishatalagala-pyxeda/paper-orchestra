@@ -26,7 +26,7 @@ Python 3.11 or newer is required; Python 3.12 was verified on Apple Silicon.
 python3.12 -m venv .venv
 .venv/bin/python -m pip install -r requirements-lock.txt
 cp .env.example .env
-# Edit .env and set GEMINI_API_KEY, or configure Vertex AI and ADC.
+# Edit .env and set OPENAI_API_KEY.
 ./scripts/install-tex-macos.sh  # macOS; alternatively install a TeX distribution
 .venv/bin/python paper_writing_cli.py --check
 ./scripts/run-local.sh
@@ -37,13 +37,28 @@ research idea, experiment log and supplied figure. Select **No** for figure
 generation to use that figure, then choose **Begin Writing**. Email is optional.
 Restart the server after changing `.env`. Runs are saved under `demo_logs/`.
 
-The UI opens without credentials. Actual generation requires Gemini access:
-outline, literature search and refinement call Gemini directly, even when other
-stages use OpenAI. An OpenAI key is optional. `--check` checks configuration
-presence and executables; it does not validate credentials or model access.
-The upstream model defaults are retained and may require access on your account.
-The optional PaperBanana reference data is not bundled; figure generation falls
-back to running without those examples.
+The UI opens without credentials. The default pipeline uses OpenAI throughout:
+outline, literature discovery with web search, section writing, peer review,
+PDF refinement and visual formatting review. Set `OPENAI_API_KEY` in `.env`.
+Gemini credentials are only needed when explicitly selecting Gemini models.
+`--check` verifies configuration presence and executables; it does not validate
+credentials or model access. `PAPER_ORCHESTRA_MODEL` changes the default model
+(currently `gpt-6-astra`); CLI model arguments can override individual stages.
+Choose a model that supports the Responses API, web search, and PDF/image inputs.
+
+OpenAI plots and conceptual diagrams are generated as matplotlib code and
+rendered locally, so no separate image model or Google credentials are required.
+Gemini runs retain the original raster diagram generator. The optional
+PaperBanana reference dataset is not bundled; figure generation falls back to
+running without those examples. Semantic Scholar is still used for citation
+verification; its API key is optional.
+
+The OpenAI adapter uses the [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses),
+[web search](https://developers.openai.com/api/docs/guides/tools-web-search),
+and native [PDF inputs](https://developers.openai.com/api/docs/guides/file-inputs).
+API usage, including hosted search, is billed to the configured API account.
+The automated tests fake model responses and execute real local LaTeX/figure
+rendering; a full live generation run requires a valid key and model access.
 
 The lock file records the tested Python dependencies. For other platforms, install
 `requirements.txt` if a platform-specific locked dependency is unavailable.
@@ -75,7 +90,7 @@ are ignored by Git. The local launcher binds only to `127.0.0.1`.
     ```env
     # Add keys if you have them, otherwise leave them empty
     # You need to specify related keys if you want to use the model
-    # For example, if you want to use Gemini models, you need to specify either VERTEX_AI_PROJECT and VERTEX_AI_LOCATION, or GEMINI_API_KEY
+    # The default OpenAI pipeline needs OPENAI_API_KEY. For Gemini models, specify either VERTEX_AI_PROJECT and VERTEX_AI_LOCATION, or GEMINI_API_KEY
     # If you want to use OpenAI models, you need to specify OPENAI_API_KEY
     
     SEMANTIC_SCHOLAR_API_KEY=your_semantic_scholar_api_key

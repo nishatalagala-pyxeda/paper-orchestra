@@ -44,13 +44,14 @@ class StartupTests(unittest.TestCase):
         from streamlit.testing.v1 import AppTest
         app = AppTest.from_file(str(ROOT / 'frontend/app.py'), default_timeout=45).run()
         self.assertFalse(app.exception)
+        self.assertTrue(app.sidebar.selectbox[0].value.startswith("gpt-"))
         app.sidebar.button[0].click().run()
         self.assertFalse(app.exception)
         self.assertTrue(app.session_state['idea_text_main'])
         self.assertTrue(app.session_state['log_text_main'])
         self.assertTrue(app.session_state['figures'])
         # Missing credentials must leave the editable inputs visible.
-        with patch('utils.runtime_config.generation_errors', return_value=['Missing Gemini key']):
+        with patch('utils.runtime_config.generation_errors', return_value=['Missing OpenAI key']):
             next(b for b in app.button if 'Begin Writing' in b.label).click().run()
         self.assertFalse(app.session_state['running'])
         self.assertFalse(app.session_state['hide_inputs'])

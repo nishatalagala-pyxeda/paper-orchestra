@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from utils.model_config import DEFAULT_MODEL
+
 import os
+from utils.llm_backend_utils import call_llm_with_contents, call_llm_with_images
+
 import traceback
 import json
 import shutil
@@ -20,9 +24,7 @@ from google.genai import types  # type: ignore
 
 from utils.pdf_utils import compile_latex, load_paper, pdf_to_grid_images
 from utils.gemini_utils import (
-    call_gemini_with_contents,
     parse_gemini_json_latex_response,
-    call_gemini_with_images,
 )
 
 from autoraters.agent_review import perform_review_agentreview
@@ -38,7 +40,7 @@ class ContentRefinementAgent:
         experimental_log_path: str,
         citation_map_path: str,
         guidelines_path: str,
-        model_name: str = "gemini-3.1-pro-preview",
+        model_name: str = DEFAULT_MODEL,
         max_reflections: int = 3,
         work_dir: str = "./paper_workspace",
     ):
@@ -162,7 +164,7 @@ Respond in JSON format with the following structure:
 ```
 """
             )
-            response_dict = call_gemini_with_images(
+            response_dict = call_llm_with_images(
                 prompt=prompt,
                 images=image_paths,
                 model_name=self.model_name,
@@ -290,7 +292,7 @@ INSTRUCTION:
 
             print(" >> calling Refinement Agent...")
             try:
-                response_dict = call_gemini_with_contents(
+                response_dict = call_llm_with_contents(
                     contents=[
                         types.Part.from_bytes(
                             data=pdf_bytes, mime_type="application/pdf"
@@ -517,7 +519,7 @@ block.
 """
 
             try:
-                response_dict = call_gemini_with_contents(
+                response_dict = call_llm_with_contents(
                     contents=[
                         types.Part.from_text(text=prompt),
                     ],

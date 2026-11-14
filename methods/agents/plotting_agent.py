@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from utils.model_config import DEFAULT_MODEL
+
 import os
 import json
 import base64
@@ -31,7 +33,7 @@ from utils.paper_banana_utils import (
 def process_single_figure(
     fig_plan,
     raw_materials_dir,
-    model_name="gemini-3.1-pro-preview",
+    model_name=DEFAULT_MODEL,
     image_model_name="gemini-3-pro-image-preview",
     max_critic_rounds=3,
 ):
@@ -204,7 +206,7 @@ def process_single_figure(
 class PlottingAgent:
     def __init__(
         self,
-        model_name: str = "gemini-3.1-pro-preview",
+        model_name: str = DEFAULT_MODEL,
         image_model_name: str = "gemini-3-pro-image-preview",
         max_critic_rounds: int = 3,
     ):
