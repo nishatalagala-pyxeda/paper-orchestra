@@ -109,6 +109,7 @@ initialize_session_state()
 
 
 def render_sidebar():
+    st.sidebar.markdown("[← Teacher workspace](/)")
     st.sidebar.title("🎻 Configuration")
 
     if st.sidebar.button("Load CVPR Example", disabled=st.session_state.locked):

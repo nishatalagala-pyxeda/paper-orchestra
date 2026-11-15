@@ -32,10 +32,51 @@ cp .env.example .env
 ./scripts/run-local.sh
 ```
 
-Open <http://127.0.0.1:8501>. Use **Load CVPR Example** to populate the
-research idea, experiment log and supplied figure. Select **No** for figure
-generation to use that figure, then choose **Begin Writing**. Email is optional.
-Restart the server after changing `.env`. Runs are saved under `demo_logs/`.
+Open <http://127.0.0.1:8501> for the **teacher-only writing workspace**.
+There is no student login or student portal. The teacher gives assignments and
+receives student work through their existing classroom workflow.
+
+### Teacher workflow
+
+1. **Create a project:** add the student's idea, experimental methodology, current
+   results, learning goals, target length and optional conference/custom LaTeX guide.
+   The sample-materials button fills the form without calling a model.
+2. **Record evidence:** append completed, preliminary or planned experiment entries.
+   Add corrections as new entries naming the earlier evidence ID.
+3. **Prepare a private reference:** generate a proposal or import a teacher-written
+   Markdown/text draft. Review the manuscript and claim/evidence ledger, edit them,
+   and approve a new snapshot. Pending and historical versions are retained.
+4. **Plan micro-assignments:** ask for the next few tasks, or write them yourself.
+   Edit each task, deliverable and completion criteria before approving its handout.
+   Download the Markdown handout to give to the student. Private reference content
+   and teaching rationale are excluded from the handout export.
+5. **Record student work:** paste or upload the student's own response. Review
+   passage-specific feedback suggestions, edit your feedback and mark the task
+   complete or request revision. Earlier submissions and feedback remain available.
+   Turn a next-step suggestion into a new assignment proposal when useful.
+6. **Update as results arrive:** new evidence leaves the approved reference and all
+   student work unchanged. Generate an update, inspect the text diff, changed claims
+   and suggested assignment impacts, then approve it. Proposals based on stale
+   evidence cannot replace a newer reference. Existing tasks are preserved; use
+   new follow-ups when an interpretation changes.
+7. **Suggest reading:** find reference candidates or add your own. Check citation
+   details and the source link, edit the reading question, and approve a reading
+   handout. The student develops themes and writes the related-work synthesis.
+
+The reference is displayed, edited and exported as Markdown; the template and page
+budget guide its structure, but this mode does not compile a page-exact PDF.
+The original PDF-generation interface is available through **Open standalone paper
+generator**, or at <http://127.0.0.1:8501/?mode=writer>. Its **Load CVPR Example**
+button supplies an idea, experiment log and figure. Standalone paper-generation
+runs are saved under `demo_logs/`.
+
+Teacher projects persist in `coaching_data/workspace.sqlite3` (ignored by Git).
+The Overview tab exports a private JSON project record including all history.
+For an alternate local database location, set `PAPER_ORCHESTRA_COACH_DB` before
+starting the app. No messages, assignments or feedback are sent automatically.
+Restart the server after changing `.env`. The manual teacher workflow works
+without a model API key; AI reference, assignment, feedback and source suggestions
+need a key. Student work is never automatically rewritten.
 
 The UI opens without credentials. The default pipeline uses OpenAI throughout:
 outline, literature discovery with web search, section writing, peer review,
